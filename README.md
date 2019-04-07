@@ -1,4 +1,4 @@
-# @pwedu/md-toc
+# yyago-toc
 
 [中文](README.zh-CN.md)
 

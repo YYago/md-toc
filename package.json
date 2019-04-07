@@ -1,5 +1,5 @@
 {
-  "name": "@pwedu/md-toc",
+  "name": "yyago-toc",
   "version": "0.0.1",
   "description": "Render TOC tags or create HTML code similar to TOC lists.",
   "main": "index.js",
@@ -16,5 +16,14 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "markdown-it": "^8.4.2"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YYago/md-toc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YYago/md-toc/issues"
+  },
+  "homepage": "https://github.com/YYago/md-toc#readme"
 }
