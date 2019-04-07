@@ -43,7 +43,7 @@
 >探讨结束
 -----
 
-## 关于 md-toc
+## 关于 yyago-toc
 
 `“[TOC]”` 在解析之后才有意义，因此 md-toc 也仅仅针对 `markdown` to `HTML` 过程做最后的收尾处理，把未解析的 `“[TOC]”` 解析成 HTML 代码并替换掉 `"[TOC]"`.
 
