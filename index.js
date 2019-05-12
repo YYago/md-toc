@@ -1,33 +1,6 @@
-/*
- * 
- * MIT License
- * 
- * Copyright (c) 2019 YYago [https://www.npmjs.com/~yyago]
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
- * Dependent packages(markdown-it,cheerio) have their own licenses.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
- */
-
 const mit = require('markdown-it');
 const cheerio = require('cheerio');
-const mdIt = new mit()
+const mdIt = new mit({ html: true })
 
 /**
  * Render the TOC markup in HTML.
@@ -36,17 +9,15 @@ const mdIt = new mit()
  * 
  * - And the strings of index matched by `options.id_prefix` will be replaced with HTML content(HTML list elements render from TOC markup). 
  * 
- * @param {string|Buffer} html -Html content.
+ * @param {string} html -Html content.
  * @param {object} options options.
  * @param {string} options.liSign The sign of li tag in markdown. default: "*".
- * @param {number} options.indent_Per_Level_heading indent.default: 2.
  * @param {regexp|string} options.TOC_regexp TOC markup or Regexp or string. them will be replaced with heading list.
  * @param {string} options.id_prefix Prefix string of the value of id attribute. default: "toc_targetid_"(result:toc_targetid_1), Use custom prefixes to avoid duplication with other ID values.
  * @param {boolean} options.isUseNewIdVal If the value of the "id" attribute of heading element not "undefined" won't reset with new value. If you want reset them use the new value both,set "{isUseNewIdVal:true}". 
- * @param {object} options.useDIV wow,Wrap up the TOC content with a DIV tag and add the "id" or "class" (or "style")attribute to it.
- * @param {string}  options.useDIV.id Value of the "id" attribute of DIV.
- * @param {string}  options.useDIV.class Value of the "class" attribute of DIV.
- * @param {string} options.useDIV.style CSS string of "style" attribute of DIV.like : "color:red;font-size:10px;......"
+ * @param {string}  options.useDIV_id Value of the "id" attribute of DIV.
+ * @param {string}  options.useDIV_class Value of the "class" attribute of DIV.
+ * @param {string} options.useDIV_style CSS string of "style" attribute of DIV.like : "color:red;font-size:10px;......"
  * @example
  * //...
  * renderTOC(foo,{
@@ -60,43 +31,48 @@ const mdIt = new mit()
  *  // style key just give strings,likes this: `"color:red;font-family:...."` .
  *  // Because most of the time it's not dealing with complete HTML content, you need to complete the CSS part yourself - it can't be added.
  */
-function renderTOC(html, options = { id_prefix: "", liSign: "", indent_Per_Level_heading: 2, TOC_regexp: "", isUseNewIdVal: false, useDIV: { id: '', class: '', style: '' } }) {
-    let optionsSet = options || {};
-    let opts = {
-        liSign: optionsSet.liSign || '*',
-        indent_Per_Level_heading: optionsSet.indent_Per_Level_heading || 2,
-        TOC_regexp: optionsSet.TOC_regexp || /(\<p\>\[TOC\]\<\/p\>)/,
-        id_prefix: optionsSet.id_prefix || "toc_targetid_",
-        isUseNewIdVal: optionsSet.isUseNewIdVal || false,
-        useDIV: {
-            id: optionsSet.useDIV.id || "TOC_box",
-            class: optionsSet.useDIV.class || "TOC_box",
-            style: optionsSet.useDIV.style || "_font-size:inherit",
-        }
+function renderTOC(html, options = { id_prefix: "", liSign: "", TOC_regexp: "", isUseNewIdVal: false, useDIV_id: '', useDIV_class: '', useDIV_style: '' }) {
+    let foo = {
+        liSign: "*",
+        indent_Per_Level_heading: 2,
+        TOC_regexp: /(\<p\>\[TOC\]\<\/p\>)/,
+        id_prefix: "toc_targetid_",
+        isUseNewIdVal: false,
+        useDIV_id: "TOC_box",
+        useDIV_class: "TOC_box",
+        useDIV_style: "_font-size:inherit",
     }
 
-    const $ = cheerio.load(html)
+    let opts_liSign = (() => { if (options.liSign == undefined) { return foo.liSign } else { return options.liSign } })();
+    let opts_id_prefix = (() => { if (options.id_prefixn == undefined) { return foo.id_prefix } else { return options.id_prefix } })();
+    let opts_TOC_regexp = (() => { if (options.TOC_regexp == undefined) { return foo.TOC_regexp } else { return options.TOC_regexp } })();
+    let opts_isUseNewIdVal = (() => { if (options.isUseNewIdVal == undefined) { return foo.isUseNewIdVal } else { return options.isUseNewIdVal } })();
+    let opts_useDIV_id = (() => { if (options.useDIV_id == undefined) { return foo.useDIV_id } else { return options.useDIV_id } })();
+    let opts_useDIV_class = (() => { if (options.useDIV_class == undefined) { return foo.useDIV_class } else { return options.useDIV_class } })();
+    let opts_useDIV_style = (() => { if (options.useDIV_style == undefined) { return foo.useDIV_style } else { return options.useDIV_style } })();
 
-    if($(':header').length==0){
+    const $ = cheerio.load(html);
+    if ($(':header').length == 0) {
         throw Error(`No heading matched. heading count: ${$(':header').length}`)
     }
     const TOCList = $(':header').map((i, e) => {
-        let currentNode = $(e);
+
         let title = $(e).text();// 标题名称
+        title = title.replace(/\r|\n/g, "")
         let oldID = $(e).attr('id');
         // 处理ID
         let H_id
 
-        if (opts.isUseNewIdVal) {
-            H_id = opts.id_prefix + i;
+        if (opts_isUseNewIdVal) {
+            H_id = opts_id_prefix + i;
         } else if (oldID == undefined) {
-            H_id = opts.id_prefix + i;
+            H_id = opts_id_prefix + i;
         } else {
             H_id = oldID;
         }
 
         $(e).attr({ id: H_id });// add the attribute: id.
-
+        let currentNode = $(e);
         let level
 
         if (currentNode.is('h1')) {
@@ -111,16 +87,29 @@ function renderTOC(html, options = { id_prefix: "", liSign: "", indent_Per_Level
             level = 8
         } else if (currentNode.is('h6')) {
             level = 10
-        } else if (currentNode.is('h7')) {
-            level = 12
         }
-        return `${" ".repeat(level)}${opts.liSign} [${title}](#${H_id})`;
+        return `${" ".repeat(level)}${opts_liSign} [${title}](#${H_id})`;
     }).get().join('\n')
     // Render the TOC list
-    const TOC2html = mdIt.render(TOCList);
-    const tocbox = `<div id="${opts.useDIV.id}" class="${opts.useDIV.class}" style="${opts.useDIV.style}">${TOC2html}</div>`;
+    let TOC2html = mdIt.render(TOCList);
+    let reped = "/a>\n" + opts_liSign;
+    TOC2html = TOC2html.replace(reped, "/a></li>\n<li>")
+    // fix: Has pre>code ! 2019-05-02
+    let resultHTML
+    const reRender = cheerio.load(TOC2html);
+    if (reRender('pre').length !== 0) {
+        resultHTML = reRender('pre').each((i, e) => {
+            let md = reRender(e).text()
+            let rendermd = mdIt.render(md);
+            reRender(e).parent('li').append(rendermd);
+            reRender(e).remove();
+        })
+    } else {
+        resultHTML = TOC2html;
+    }
+    const tocbox = `<div id="${opts_useDIV_id}" class="${opts_useDIV_class}" style="${opts_useDIV_style}">${resultHTML}</div>`;
     // Replace the Unrendered TOC mark(options.TOC_regexp) in HTML content with tocbox.
-    const newhtml = $('body').html().replace(opts.TOC_regexp, tocbox)
+    const newhtml = $('body').html().replace(opts_TOC_regexp, tocbox)
     /** @returns {object}*/
     return {
         /**@member {string} HTML Return changed HTML*/
@@ -131,7 +120,6 @@ function renderTOC(html, options = { id_prefix: "", liSign: "", indent_Per_Level
         TOC_box_HTML: tocbox,
     }
 }
-
 module.exports = {
     renderTOC,
 }
