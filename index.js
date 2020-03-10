@@ -9,15 +9,15 @@ const mdIt = new mit({ html: true })
  * 
  * - And the strings of index matched by `options.id_prefix` will be replaced with HTML content(HTML list elements render from TOC markup). 
  * 
- * @param {string} html -Html content.
- * @param {object} options options.
- * @param {string} options.liSign The sign of li tag in markdown. default: "*".
- * @param {regexp|string} options.TOC_regexp TOC markup or Regexp or string. them will be replaced with heading list.
- * @param {string} options.id_prefix Prefix string of the value of id attribute. default: "toc_targetid_"(result:toc_targetid_1), Use custom prefixes to avoid duplication with other ID values.
- * @param {boolean} options.isUseNewIdVal If the value of the "id" attribute of heading element not "undefined" won't reset with new value. If you want reset them use the new value both,set "{isUseNewIdVal:true}". 
- * @param {string}  options.useDIV_id Value of the "id" attribute of DIV.
- * @param {string}  options.useDIV_class Value of the "class" attribute of DIV.
- * @param {string} options.useDIV_style CSS string of "style" attribute of DIV.like : "color:red;font-size:10px;......"
+ * @property {string} html -Html content.
+ * @property {object} options options.
+ * @property {string} options.liSign The sign of li tag in markdown. default: "*".
+ * @property {regexp|string} options.TOC_regexp TOC markup or Regexp or string. them will be replaced with heading list.
+ * @property {string} options.id_prefix Prefix string of the value of id attribute. default: "toc_targetid_"(result:toc_targetid_1), Use custom prefixes to avoid duplication with other ID values.
+ * @property {boolean} options.isUseNewIdVal If the value of the "id" attribute of heading element not "undefined" won't reset with new value. If you want reset them use the new value both,set "{isUseNewIdVal:true}". 
+ * @property {string}  options.useDIV_id Value of the "id" attribute of DIV.
+ * @property {string}  options.useDIV_class Value of the "class" attribute of DIV.
+ * @property {string} options.useDIV_style CSS string of "style" attribute of DIV.like : "color:red;font-size:10px;......"
  * @example
  * //...
  * renderTOC(foo,{
@@ -35,7 +35,7 @@ function renderTOC(html, options = { id_prefix: "", liSign: "", TOC_regexp: "", 
     let foo = {
         liSign: "*",
         indent_Per_Level_heading: 2,
-        TOC_regexp: /(\<p\>\[TOC\]\<\/p\>)/,
+        TOC_regexp: /\<p\>\[(TOC)\]\<\/p\>/,
         id_prefix: "toc_targetid_",
         isUseNewIdVal: false,
         useDIV_id: "TOC_box",
@@ -51,9 +51,43 @@ function renderTOC(html, options = { id_prefix: "", liSign: "", TOC_regexp: "", 
     let opts_useDIV_class = (() => { if (options.useDIV_class == undefined) { return foo.useDIV_class } else { return options.useDIV_class } })();
     let opts_useDIV_style = (() => { if (options.useDIV_style == undefined) { return foo.useDIV_style } else { return options.useDIV_style } })();
 
+    let resObj = {
+        /**
+         * Return changed HTML.
+         * 
+         * Note:
+         * 
+         *  - Return the HTML of param you given. if no title matches.
+         * */
+        HTML: "",
+        /**
+         * Return markdown list(markdown).
+         * 
+         * Note:
+         * 
+         *  - Returns an empty string if no title matches.
+         * */
+        TOC_markdown: "",
+        /**
+         * Return rendered TOC markup(HTML code)
+         * 
+         * Note:
+         * 
+         *  - Returns an empty string if no title matches.
+         * */
+        TOC_box_HTML: "",
+    }
+
     const $ = cheerio.load(html);
+
     if ($(':header').length == 0) {
-        throw Error(`No heading matched. heading count: ${$(':header').length}`)
+        // throw Error(`No heading matched. heading count: ${$(':header').length}`) 这东西会阻断后续操作……
+        // 如果没有任何标题则直接返回原 HTML。
+        resObj.HTML = html;
+        resObj.TOC_markdown = "";
+        resObj.TOC_box_HTML = "";
+        resObj.html_with_TOCbox = html;
+        return resObj
     }
     const TOCList = $(':header').map((i, e) => {
 
@@ -109,17 +143,20 @@ function renderTOC(html, options = { id_prefix: "", liSign: "", TOC_regexp: "", 
     }
     const tocbox = `<div id="${opts_useDIV_id}" class="${opts_useDIV_class}" style="${opts_useDIV_style}">${resultHTML}</div>`;
     // Replace the Unrendered TOC mark(options.TOC_regexp) in HTML content with tocbox.
-    const newhtml = $('body').html().replace(opts_TOC_regexp, tocbox)
-    /** @returns {object}*/
-    return {
-        /**@member {string} HTML Return changed HTML*/
-        HTML: newhtml,
-        /**@member {string} TOC_markdown Return markdown list(markdown).*/
-        TOC_markdown: TOCList,
-        /**@member {string} TOC_box_HTML Return rendered TOC markup(HTML code)*/
-        TOC_box_HTML: tocbox,
+    let newhtml;
+    let resHTML = $('body').html();
+    if(opts_TOC_regexp.test(resHTML)){
+        newhtml = resHTML.replace(opts_TOC_regexp,tocbox)
+    }else{
+        newhtml = `${tocbox}\n${resHTML}`;
     }
+    resObj.HTML = newhtml;
+    resObj.TOC_markdown = TOCList;
+    resObj.TOC_box_HTML = tocbox;
+
+    return resObj;
 }
+
 module.exports = {
     renderTOC,
 }
