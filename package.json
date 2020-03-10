@@ -1,6 +1,6 @@
 {
   "name": "yyago-toc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Render TOC tags or create HTML code similar to TOC lists.",
   "main": "index.js",
   "scripts": {
